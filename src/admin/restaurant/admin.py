@@ -23,6 +23,7 @@ class ReservationInline(admin.TabularInline):
 @admin.register(Restaurant)
 class RestaurantAdmin(admin.ModelAdmin):
     inlines=[TableTypeInline,MenuInline]
+    
 
 @admin.register(TableType)
 class TableTypeAdmin(admin.ModelAdmin):

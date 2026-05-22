@@ -10,3 +10,4 @@ async def get_menu(
     service: GetMenu = Depends(get_menu_service)
 ):
     return await service.get_by_date(date)
+

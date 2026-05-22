@@ -197,5 +197,4 @@ Luego aqui podemos ver le diseño de los Services es la clave para que la app no
 Lo malo obviamente es que, algunos servicios son muy grandes, podemos seguir separando responsabilidades, hacerlos mas pequeños, podemos seguir escalando, tal vez pensar en otro arquitectura, tal vez un patrón CQRS, y manejar diferentes bases de datos para consulta y escritura, para el modulo de Admin y la API, de esta manera podriamos aprovechar las ventajas de cada uno. Otros patrones como Repository Pattern, para el acceso a la base de datos, si se fijan, hay metodos repetidos en cada servicio `get_from_cache,set_cache` incumplimos el metodo DRY, tambien el cuello de botella que hay en la consulta `get_availability` es el más propenso a fallar, tal vez con un Bloqueo Optimista, cuando el tráfico suba se podra ver las carencias, pero bueno, eso es lo que pude hacer en un dia. 
 
 
-
 **Enjoy exploring the code!**
