@@ -30,6 +30,8 @@ class Restaurant(UUIDMixin,TimeStampedMixin):
 class TableType(UUIDMixin,TimeStampedMixin):
     resturant=models.ForeignKey("Restaurant",on_delete=models.CASCADE,db_column="restaurant_id")
     name=models.TextField(db_column="name")
+    type=models.TextField(db_column="type")
+    price=models.FloatField(db_column="price")
     capacity=models.IntegerField(db_column="capacity")
     description=models.TextField(db_column="description")
     
