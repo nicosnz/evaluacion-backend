@@ -9,8 +9,9 @@ class Reservation(TimeStampModel,table=True):
     __table_args__ = {"schema": "content"}
 
     id:uuid.UUID=Field(default_factory=uuid.uuid4,primary_key=True)
-    reservation_time:datetime
     status:str
+    starts_at:datetime
+    ends_at:datetime
     restaurant_id:uuid.UUID=Field(foreign_key="content.restaurant.id") 
     restaurant: Optional["Restaurant"] = Relationship(back_populates="reservations")   
     table_type_id:uuid.UUID=Field(foreign_key="content.table_type.id") 

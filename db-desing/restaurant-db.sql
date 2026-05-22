@@ -192,50 +192,51 @@ DECLARE
     v_reservation_id UUID;
     v_start_time TIMESTAMP;
     i INT;
-    v_count INT := 10; -- Número de mesas a crear
-    v_hours INT[] := ARRAY[18, 19, 20, 21];
-    v_mins INT[] := ARRAY[0, 30];
-    -- Tipos permitidos por tu constraint
+    j INT;
+    v_mesa_idx INT;
+    v_dia_offset INT;
     v_allowed_types TEXT[] := ARRAY['shared', 'private', 'vip', 'outdoor', 'bar'];
-    v_selected_type TEXT;
 BEGIN
     -- 1. Insertar el restaurante
     INSERT INTO content.restaurant (id, name, description, address, created_at, updated_at)
-    VALUES (v_restaurant_id, 'Restaurante Gran Variedad', 'Nuestra mejor selección de mesas', 'Calle Falsa 123', NOW(), NOW());
+    VALUES (v_restaurant_id, 'Restaurante Exclusivo', 'Gastronomía de alta calidad', 'Calle Central 100', NOW(), NOW());
 
-    -- 2. Insertar 10 tipos de mesa (distribuidas en los tipos permitidos)
-    FOR i IN 1..v_count LOOP
+    -- 2. Crear 10 mesas
+    FOR i IN 1..10 LOOP
         v_table_id := gen_random_uuid();
         v_table_ids := v_table_ids || v_table_id;
-        v_selected_type := v_allowed_types[((i-1) % 5) + 1];
-        
         INSERT INTO content.table_type (id, restaurant_id, name, type, capacity, description, price, created_at, updated_at)
-        VALUES (v_table_id, v_restaurant_id, 'Mesa ' || i || ' (' || v_selected_type || ')', v_selected_type, (random()*10 + 1)::int, 'Descripción de la mesa ' || i, (random()*100 + 10)::numeric(10,2), NOW(), NOW());
+        VALUES (v_table_id, v_restaurant_id, 'Mesa ' || i, v_allowed_types[((i-1) % 5) + 1], 4, 'Mesa tipo ' || v_allowed_types[((i-1) % 5) + 1], 50.00, NOW(), NOW());
     END LOOP;
 
-    -- 3. Insertar un menú
+    -- 3. Generar reservas garantizando unicidad
+    FOR v_dia_offset IN 0..60 LOOP
+        FOR v_mesa_idx IN 1..10 LOOP
+            FOR j IN 0..7 LOOP 
+                
+                -- Corregido: Suma de intervalos para evitar error de formato de tiempo
+                v_start_time := (CURRENT_DATE + (v_dia_offset || ' days')::interval) + 
+                                INTERVAL '18 hours' + 
+                                ((j / 2) * INTERVAL '1 hour') + 
+                                (CASE WHEN j % 2 != 0 THEN INTERVAL '30 minutes' ELSE INTERVAL '0 minutes' END);
+                
+                v_reservation_id := gen_random_uuid();
+                
+                INSERT INTO content.reservation (id, restaurant_id, table_type_id, starts_at, ends_at, status, created_at, updated_at)
+                VALUES (v_reservation_id, v_restaurant_id, v_table_ids[v_mesa_idx], v_start_time, v_start_time + interval '30 minutes', 'confirmed', NOW(), NOW());
+                
+                INSERT INTO content.reservation_guest (id, reservation_id, full_name, email, phone, created_at, updated_at)
+                VALUES (gen_random_uuid(), v_reservation_id, 'Cliente ' || v_dia_offset || '-' || j, 'cliente@ejemplo.com', '12345678', NOW(), NOW());
+                
+                -- Salir si alcanzamos 400 registros
+                IF (SELECT count(*) FROM content.reservation) >= 400 THEN
+                    RETURN; 
+                END IF;
+            END LOOP;
+        END LOOP;
+    END LOOP;
+
+    -- 4. Insertar un menú
     INSERT INTO content.menu (id, restaurant_id, name, description, courses_count, active_from, active_to, created_at, updated_at)
-    VALUES (v_menu_id, v_restaurant_id, 'Menú Gourmet', 'Degustación 10 tiempos', 10, CURRENT_DATE, CURRENT_DATE + 60, NOW(), NOW());
-    
-    INSERT INTO content.menu_item (id, menu_id, name, description, course_number, ingredients, price, created_at, updated_at)
-    VALUES (gen_random_uuid(), v_menu_id, 'Plato Principal', 'Especialidad', 1, 'Ingredientes secretos', 45.00, NOW(), NOW());
-
-    -- 4. Generar 400 reservas distribuidas entre las 10 mesas
-    FOR i IN 1..400 LOOP
-        v_reservation_id := gen_random_uuid();
-        -- Seleccionar una mesa de nuestro array de 10 mesas
-        v_table_id := v_table_ids[((i-1) % 10) + 1];
-        
-        -- Lógica: Hora entre 18:00 y 21:00 en intervalos de 30 min
-        v_start_time := (CURRENT_DATE + ( (i / 40) || ' days')::interval) + 
-                        (v_hours[(random()*3 + 1)::int] || ':' || v_mins[(random()*1 + 1)::int])::interval;
-        
-        INSERT INTO content.reservation (id, restaurant_id, table_type_id, starts_at, ends_at, status, created_at, updated_at)
-        VALUES (v_reservation_id, v_restaurant_id, v_table_id, v_start_time, v_start_time + interval '30 minutes', 
-                (ARRAY['pending', 'confirmed', 'cancelled', 'completed'])[(random()*3 + 1)::int], NOW(), NOW());
-        
-        -- Insertar el invitado
-        INSERT INTO content.reservation_guest (id, reservation_id, full_name, email, phone, created_at, updated_at)
-        VALUES (gen_random_uuid(), v_reservation_id, 'Invitado ' || i, 'invitado' || i || '@ejemplo.com', '555-' || (1000 + i), NOW(), NOW());
-    END LOOP;
+    VALUES (v_menu_id, v_restaurant_id, 'Menú Degustación', 'Chef especial', 3, CURRENT_DATE, CURRENT_DATE + 30, NOW(), NOW());
 END $$;
