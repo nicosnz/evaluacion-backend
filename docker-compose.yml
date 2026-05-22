@@ -1,6 +1,6 @@
 services:
   database_restaurante:
-    container_name: database-restaurante
+    container_name: database_restaurante
     image: postgres:16
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
@@ -19,13 +19,19 @@ services:
     volumes:
       - ev2:/var/lib/postgresql/data
       - ./db-desing:/docker-entrypoint-initdb.d
-  cache-restaurante:
-    container_name: cache-restaurante
+  cache_restaurante:
+    container_name: cache_restaurante
     image: redis:8.4-alpine
     expose:
       - "6379"
     networks:
       - private_net
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   api:
     container_name: api
     build: ./src/app_api
@@ -39,6 +45,8 @@ services:
       - .env
     depends_on:
       database_restaurante:
+        condition: service_healthy
+      cache_restaurante:
         condition: service_healthy
     networks:
       - public_net

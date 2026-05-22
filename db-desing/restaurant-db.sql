@@ -107,9 +107,8 @@ CREATE TABLE content.reservation_guest (
 );
 CREATE INDEX idx_reservation_time ON content.reservation(reservation_time);
 CREATE INDEX idx_reservation_status ON content.reservation(status);
-----------------------------------------------------
--- RESTAURANT
-----------------------------------------------------
+
+
 
 INSERT INTO content.restaurant (
     id,
@@ -129,9 +128,7 @@ VALUES
     NOW()
 );
 
-----------------------------------------------------
--- MENU
-----------------------------------------------------
+
 
 INSERT INTO content.menu (
     id,
@@ -157,9 +154,7 @@ VALUES
     NOW()
 );
 
-----------------------------------------------------
--- MENU ITEMS
-----------------------------------------------------
+
 
 INSERT INTO content.menu_item (
     id,
@@ -269,9 +264,7 @@ VALUES
     NOW()
 );
 
-----------------------------------------------------
--- TABLE TYPES
-----------------------------------------------------
+
 
 INSERT INTO content.table_type (
     id,
@@ -308,9 +301,6 @@ VALUES
     NOW()
 );
 
-----------------------------------------------------
--- RESERVATIONS
-----------------------------------------------------
 
 INSERT INTO content.reservation (
     id,
@@ -341,9 +331,7 @@ VALUES
     NOW()
 );
 
-----------------------------------------------------
--- RESERVATION GUESTS
-----------------------------------------------------
+
 
 INSERT INTO content.reservation_guest (
     id,

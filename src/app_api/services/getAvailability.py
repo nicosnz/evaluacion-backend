@@ -1,15 +1,18 @@
-# services/getAvailability.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from fastapi import Depends
 from datetime import date, time, datetime
+from redis.asyncio import Redis
 from zoneinfo import ZoneInfo
+import json 
+import logging
 from models.table_type import TableType
 from models.reservation import Reservation
 from models.reservation_guest import ReservationGuest
 from db.postgres import get_db
 from pydantic import BaseModel
 from datetime import datetime
+from db.cache import get_redis
 
 class AvailabilitySlot(BaseModel):
     time: datetime
@@ -18,12 +21,34 @@ class AvailabilitySlot(BaseModel):
     seats: int             
     available_seats: int   
     price_per_seat: float
-    
+
+logger = logging.getLogger(__name__)
+
+CACHE_TTL = 60
     
 class GetAvailability:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession,redis:Redis):
         self.db = db
+        self.redis=redis
+        
+    def _cache_key(self, date: date, time: time | None, party: int, table_type: str | None, tz: str) -> str:
+        return f"availability:{date}:{time}:{party}:{table_type or 'any'}:{tz}"
 
+    async def _get_from_cache(self, key: str) -> list[AvailabilitySlot] | None:
+        try:
+            cached = await self.redis.get(key)
+            if cached:
+                data = json.loads(cached)
+                return [AvailabilitySlot(**item) for item in data]
+        except Exception as e:
+            logger.warning(f"Redis get availability fallo: {e}")
+        return None
+    async def _set_cache(self, key: str, data: list[AvailabilitySlot]) -> None:
+            try:
+                serialized = json.dumps([item.model_dump(mode="json") for item in data])
+                await self.redis.setex(key, CACHE_TTL, serialized)
+            except Exception as e:
+                logger.warning(f"Redis set availability fallo: {e}")
     async def get_availability(
         self,
         date: date,
@@ -32,7 +57,27 @@ class GetAvailability:
         table_type: str | None,
         tz: str
     ) -> list[AvailabilitySlot]:
+        key = self._cache_key(date,time,party,table_type,tz)
+        
+        cached = await self._get_from_cache(key)
+        if cached is not None:
+            return cached
+        
+        result = await self._get_from_db(date, time, party, table_type, tz)
 
+        await self._set_cache(key, result)
+
+        return result
+    
+    async def _get_from_db(
+        self,
+        date: date,
+        time: time | None,
+        party: int,
+        table_type: str | None,
+        tz: str
+    ) -> list[AvailabilitySlot]:        
+        
         try:
             client_tz = ZoneInfo(tz)
         except Exception:
@@ -92,5 +137,5 @@ class GetAvailability:
             if tt.capacity - reserved >= party
         ]
 
-def get_availability_service(db: AsyncSession = Depends(get_db)):
-    return GetAvailability(db)
+def get_availability_service(db: AsyncSession = Depends(get_db),redis:Redis = Depends(get_redis)):
+    return GetAvailability(db,redis)
