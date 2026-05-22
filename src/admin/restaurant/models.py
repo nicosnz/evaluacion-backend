@@ -3,6 +3,7 @@ import uuid
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.core.exceptions import ValidationError
+from datetime import timedelta
 # Create your models here.
 class TimeStampedMixin(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -92,25 +93,105 @@ class MenuItem(UUIDMixin,TimeStampedMixin):
         verbose_name="Item Menu"
         verbose_name_plural="Items Menu"
         
-class Reservation(UUIDMixin,TimeStampedMixin):
-    STATUS_RESERVATION=[
-        ("pending","Pending"),
-        ("confirmed","Confirmed"),
-        ("cancelled","Cancelled"),
-        ("completed","Completed")
+
+
+class Reservation(UUIDMixin, TimeStampedMixin):
+
+    STATUS_RESERVATION = [
+        ("pending", "Pending"),
+        ("confirmed", "Confirmed"),
+        ("cancelled", "Cancelled"),
+        ("completed", "Completed"),
     ]
-    resturant=models.ForeignKey("Restaurant",on_delete=models.CASCADE,db_column="restaurant_id")
-    table_type=models.ForeignKey("TableType",on_delete=models.CASCADE,db_column="table_type_id")
-    reservation_time=models.DateTimeField(db_column="reservation_time")
-    status=models.TextField(db_column="status",choices=STATUS_RESERVATION)
-    
+
+    restaurant = models.ForeignKey(
+        "Restaurant",
+        on_delete=models.CASCADE,
+        db_column="restaurant_id"
+    )
+
+    table_type = models.ForeignKey(
+        "TableType",
+        on_delete=models.CASCADE,
+        db_column="table_type_id"
+    )
+
+    starts_at = models.DateTimeField(
+        db_column="starts_at"
+    )
+
+    ends_at = models.DateTimeField(
+        db_column="ends_at",
+        editable=False
+    )
+
+    status = models.CharField(
+        db_column="status",
+        choices=STATUS_RESERVATION,
+        max_length=30
+    )
+
+    def clean(self):
+
+        minute = self.starts_at.minute
+        hour = self.starts_at.hour
+
+        valid_hours = [18, 19, 20, 21]
+
+        if hour not in valid_hours:
+            raise ValidationError(
+                "La reserva debe estar entre 18:00 y 21:00"
+            )
+
+        if minute not in [0, 30]:
+            raise ValidationError(
+                "Las reservas deben ser cada 30 minutos"
+            )
+
+        existing = Reservation.objects.filter(
+            table_type=self.table_type,
+            starts_at=self.starts_at
+        )
+
+        if self.pk:
+            existing = existing.exclude(pk=self.pk)
+
+        if existing.exists():
+            raise ValidationError(
+                "Ya existe una reserva para esa mesa y horario."
+            )
+
+    def save(self, *args, **kwargs):
+
+        self.ends_at = self.starts_at + timedelta(minutes=30)
+
+        self.full_clean()
+
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return self.status
+
+        return (
+            f"{self.restaurant.name} | "
+            f"{self.starts_at.strftime('%Y-%m-%d %H:%M')} - "
+            f"{self.ends_at.strftime('%H:%M')}"
+        )
+
     class Meta:
-        managed=False
-        db_table='"content"."reservation"'
-        verbose_name="Reserva"
-        verbose_name_plural="Reservaciones"
+
+        managed = False
+
+        db_table = '"content"."reservation"'
+
+        verbose_name = "Reserva"
+        verbose_name_plural = "Reservaciones"
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=["table_type", "starts_at"],
+                name="uq_table_reservation"
+            )
+        ]
         
 class ReservationGuests(UUIDMixin,TimeStampedMixin):
     reservation=models.ForeignKey("Reservation",on_delete=models.CASCADE,db_column="reservation_id")

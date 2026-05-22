@@ -27,6 +27,10 @@ class RestaurantAdmin(admin.ModelAdmin):
 @admin.register(TableType)
 class TableTypeAdmin(admin.ModelAdmin):
     inlines=[ReservationInline]
+    list_filter=[
+        "name",
+        "type"
+    ]
 
 @admin.register(Menu)
 class MenuAdmin(admin.ModelAdmin):
@@ -39,6 +43,10 @@ class MenuItemAdmin(admin.ModelAdmin):
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
     inlines=[ReservationGuestsInline]
+    list_filter = [
+        "starts_at",
+        "status"
+    ]
     
 @admin.register(ReservationGuests)
 class ReservationGuestsAdmin(admin.ModelAdmin):
