@@ -185,58 +185,352 @@ ON content.reservation_guest(reservation_id);
 
 DO $$
 DECLARE
+
     v_restaurant_id UUID := gen_random_uuid();
+
     v_menu_id UUID := gen_random_uuid();
+
     v_table_ids UUID[] := ARRAY[]::UUID[];
+
     v_table_id UUID;
+
     v_reservation_id UUID;
+
     v_start_time TIMESTAMP;
+
+    v_guest_count INT;
+
+    v_total_reservations INT := 0;
+
     i INT;
     j INT;
+    k INT;
+
     v_mesa_idx INT;
+
     v_dia_offset INT;
-    v_allowed_types TEXT[] := ARRAY['shared', 'private', 'vip', 'outdoor', 'bar'];
+
+    v_allowed_types TEXT[] := ARRAY[
+        'shared',
+        'private',
+        'vip',
+        'outdoor',
+        'bar'
+    ];
+
+    v_statuses TEXT[] := ARRAY[
+        'pending',
+        'confirmed',
+        'completed'
+    ];
+
 BEGIN
-    -- 1. Insertar el restaurante
-    INSERT INTO content.restaurant (id, name, description, address, created_at, updated_at)
-    VALUES (v_restaurant_id, 'Restaurante Exclusivo', 'Gastronomía de alta calidad', 'Calle Central 100', NOW(), NOW());
 
-    -- 2. Crear 10 mesas
-    FOR i IN 1..10 LOOP
+    -- =====================================================
+    -- RESTAURANT
+    -- =====================================================
+
+    INSERT INTO content.restaurant (
+        id,
+        name,
+        description,
+        address,
+        created_at,
+        updated_at
+    )
+    VALUES (
+        v_restaurant_id,
+        'Mesa Larga Experience',
+        'Experiencia gastronómica premium con menú degustación estacional',
+        'Av. Gourmet 742, Santa Cruz',
+        NOW(),
+        NOW()
+    );
+
+    -- =====================================================
+    -- TABLE TYPES / PHYSICAL TABLES
+    -- =====================================================
+
+    FOR i IN 1..15 LOOP
+
         v_table_id := gen_random_uuid();
-        v_table_ids := v_table_ids || v_table_id;
-        INSERT INTO content.table_type (id, restaurant_id, name, type, capacity, description, price, created_at, updated_at)
-        VALUES (v_table_id, v_restaurant_id, 'Mesa ' || i, v_allowed_types[((i-1) % 5) + 1], 4, 'Mesa tipo ' || v_allowed_types[((i-1) % 5) + 1], 50.00, NOW(), NOW());
+
+        v_table_ids := array_append(v_table_ids, v_table_id);
+
+        INSERT INTO content.table_type (
+            id,
+            restaurant_id,
+            name,
+            type,
+            capacity,
+            description,
+            price,
+            created_at,
+            updated_at
+        )
+        VALUES (
+            v_table_id,
+            v_restaurant_id,
+
+            'Mesa ' || i,
+
+            v_allowed_types[((i - 1) % 5) + 1],
+
+            CASE
+                WHEN i <= 5 THEN 2
+                WHEN i <= 10 THEN 4
+                ELSE 6
+            END,
+
+            'Mesa premium tipo ' || v_allowed_types[((i - 1) % 5) + 1],
+
+            CASE
+                WHEN i <= 5 THEN 45.00
+                WHEN i <= 10 THEN 75.00
+                ELSE 120.00
+            END,
+
+            NOW(),
+            NOW()
+        );
+
     END LOOP;
 
-    -- 3. Generar reservas garantizando unicidad
-    FOR v_dia_offset IN 0..60 LOOP
-        FOR v_mesa_idx IN 1..10 LOOP
-            FOR j IN 0..7 LOOP 
-                
-                -- Corregido: Suma de intervalos para evitar error de formato de tiempo
-                v_start_time := (CURRENT_DATE + (v_dia_offset || ' days')::interval) + 
-                                INTERVAL '18 hours' + 
-                                ((j / 2) * INTERVAL '1 hour') + 
-                                (CASE WHEN j % 2 != 0 THEN INTERVAL '30 minutes' ELSE INTERVAL '0 minutes' END);
-                
-                v_reservation_id := gen_random_uuid();
-                
-                INSERT INTO content.reservation (id, restaurant_id, table_type_id, starts_at, ends_at, status, created_at, updated_at)
-                VALUES (v_reservation_id, v_restaurant_id, v_table_ids[v_mesa_idx], v_start_time, v_start_time + interval '30 minutes', 'confirmed', NOW(), NOW());
-                
-                INSERT INTO content.reservation_guest (id, reservation_id, full_name, email, phone, created_at, updated_at)
-                VALUES (gen_random_uuid(), v_reservation_id, 'Cliente ' || v_dia_offset || '-' || j, 'cliente@ejemplo.com', '12345678', NOW(), NOW());
-                
-                -- Salir si alcanzamos 400 registros
-                IF (SELECT count(*) FROM content.reservation) >= 400 THEN
-                    RETURN; 
+    -- =====================================================
+    -- MENU
+    -- =====================================================
+
+    INSERT INTO content.menu (
+        id,
+        restaurant_id,
+        name,
+        description,
+        courses_count,
+        active_from,
+        active_to,
+        created_at,
+        updated_at
+    )
+    VALUES (
+        v_menu_id,
+        v_restaurant_id,
+        'Menú Otoño 2026',
+        'Menú degustación inspirado en ingredientes de temporada',
+        8,
+        CURRENT_DATE,
+        CURRENT_DATE + 90,
+        NOW(),
+        NOW()
+    );
+
+    -- =====================================================
+    -- MENU ITEMS
+    -- =====================================================
+
+    INSERT INTO content.menu_item (
+        id,
+        menu_id,
+        name,
+        description,
+        course_number,
+        ingredients,
+        price,
+        created_at,
+        updated_at
+    )
+    VALUES
+
+    (
+        gen_random_uuid(),
+        v_menu_id,
+        'Amuse Bouche',
+        'Bocado de bienvenida',
+        1,
+        'Trigo, mantequilla, hierbas',
+        12.00,
+        NOW(),
+        NOW()
+    ),
+
+    (
+        gen_random_uuid(),
+        v_menu_id,
+        'Entrada fría',
+        'Vegetales frescos y emulsión cítrica',
+        2,
+        'Lechuga, limón, aceite de oliva',
+        18.00,
+        NOW(),
+        NOW()
+    ),
+
+    (
+        gen_random_uuid(),
+        v_menu_id,
+        'Sopa de temporada',
+        'Crema suave de vegetales',
+        3,
+        'Calabaza, zanahoria, crema',
+        20.00,
+        NOW(),
+        NOW()
+    ),
+
+    (
+        gen_random_uuid(),
+        v_menu_id,
+        'Pescado blanco',
+        'Pescado sellado con reducción cítrica',
+        4,
+        'Pescado, limón, mantequilla',
+        38.00,
+        NOW(),
+        NOW()
+    ),
+
+    (
+        gen_random_uuid(),
+        v_menu_id,
+        'Intermedio',
+        'Granizado refrescante',
+        5,
+        'Menta, limón',
+        10.00,
+        NOW(),
+        NOW()
+    ),
+
+    (
+        gen_random_uuid(),
+        v_menu_id,
+        'Carne premium',
+        'Corte premium con salsa de vino',
+        6,
+        'Res, vino tinto',
+        55.00,
+        NOW(),
+        NOW()
+    ),
+
+    (
+        gen_random_uuid(),
+        v_menu_id,
+        'Pre-postre',
+        'Transición dulce',
+        7,
+        'Frutas rojas',
+        15.00,
+        NOW(),
+        NOW()
+    ),
+
+    (
+        gen_random_uuid(),
+        v_menu_id,
+        'Postre del chef',
+        'Postre de chocolate artesanal',
+        8,
+        'Chocolate, cacao',
+        22.00,
+        NOW(),
+        NOW()
+    );
+
+    -- =====================================================
+    -- RESERVATIONS
+    -- =====================================================
+
+    FOR v_dia_offset IN 0..45 LOOP
+
+        FOR v_mesa_idx IN 1..15 LOOP
+
+            FOR j IN 0..7 LOOP
+
+                EXIT WHEN v_total_reservations >= 450;
+
+                -- 18:00 -> 21:30
+                v_start_time :=
+
+                    (
+                        CURRENT_DATE
+                        + (v_dia_offset || ' days')::interval
+                    )
+
+                    + INTERVAL '18 hours'
+
+                    + (j * INTERVAL '30 minutes');
+
+                -- Saltar algunas reservas aleatoriamente
+                IF random() < 0.25 THEN
+                    CONTINUE;
                 END IF;
+
+                v_reservation_id := gen_random_uuid();
+
+                INSERT INTO content.reservation (
+                    id,
+                    restaurant_id,
+                    table_type_id,
+                    starts_at,
+                    ends_at,
+                    status,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    v_reservation_id,
+
+                    v_restaurant_id,
+
+                    v_table_ids[v_mesa_idx],
+
+                    v_start_time,
+
+                    v_start_time + INTERVAL '30 minutes',
+
+                    v_statuses[(floor(random() * 3)::INT + 1)],
+
+                    NOW(),
+                    NOW()
+                );
+
+                -- invitados aleatorios
+                v_guest_count := floor(random() * 4 + 1);
+
+                FOR k IN 1..v_guest_count LOOP
+
+                    INSERT INTO content.reservation_guest (
+                        id,
+                        reservation_id,
+                        full_name,
+                        email,
+                        phone,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (
+                        gen_random_uuid(),
+
+                        v_reservation_id,
+
+                        'Cliente ' || v_total_reservations || '-' || k,
+
+                        'cliente' || v_total_reservations || k || '@mail.com',
+
+                        '+5917' || lpad((floor(random() * 9999999))::TEXT, 7, '0'),
+
+                        NOW(),
+                        NOW()
+                    );
+
+                END LOOP;
+
+                v_total_reservations := v_total_reservations + 1;
+
             END LOOP;
+
         END LOOP;
+
     END LOOP;
 
-    -- 4. Insertar un menú
-    INSERT INTO content.menu (id, restaurant_id, name, description, courses_count, active_from, active_to, created_at, updated_at)
-    VALUES (v_menu_id, v_restaurant_id, 'Menú Degustación', 'Chef especial', 3, CURRENT_DATE, CURRENT_DATE + 30, NOW(), NOW());
 END $$;

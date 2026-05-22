@@ -193,7 +193,7 @@ class GetAvailability:
                 )
             )
 
-            .subquery()
+            
         )
 
         stmt = (
@@ -204,13 +204,7 @@ class GetAvailability:
                 TableType.capacity >= party
             )
 
-            .where(
-                ~TableType.id.in_(
-                    select(
-                        reserved_tables_subquery.c.table_type_id
-                    )
-                )
-            )
+            
         )
 
         if table_type and table_type.lower() not in ("", "any"):
@@ -219,6 +213,9 @@ class GetAvailability:
                 TableType.id == uuid.UUID(table_type)
             )
 
+        stmt=stmt.where(
+            ~TableType.id.in_(reserved_tables_subquery)
+        )
         result = await self.db.execute(stmt)
 
         table_types = result.scalars().all()
