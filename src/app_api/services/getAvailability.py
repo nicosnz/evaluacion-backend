@@ -4,10 +4,10 @@ from sqlalchemy import select, func
 from fastapi import Depends
 from datetime import date, time, datetime
 from zoneinfo import ZoneInfo
-from ..models.table_type import TableType
-from ..models.reservation import Reservation
-from ..models.reservation_guest import ReservationGuest
-from ..db.postgres import get_db
+from models.table_type import TableType
+from models.reservation import Reservation
+from models.reservation_guest import ReservationGuest
+from db.postgres import get_db
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -27,7 +27,7 @@ class GetAvailability:
     async def get_availability(
         self,
         date: date,
-        time: time,
+        time: time | None,
         party: int,
         table_type: str | None,
         tz: str
@@ -38,8 +38,14 @@ class GetAvailability:
         except Exception:
             client_tz = ZoneInfo("UTC")
 
-        local_dt = datetime.combine(date, time).replace(tzinfo=client_tz)
-        reservation_time_utc = local_dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+        if time:
+            local_dt = datetime.combine(date, time).replace(tzinfo=client_tz)
+            reservation_time_utc = local_dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+            time_filter = Reservation.reservation_time == reservation_time_utc
+        else:
+            start = datetime.combine(date, datetime.min.time())
+            end = datetime.combine(date, datetime.max.time())
+            time_filter = Reservation.reservation_time.between(start, end)
 
         guests_per_reservation = (
             select(
@@ -48,7 +54,7 @@ class GetAvailability:
             )
             .join(ReservationGuest, ReservationGuest.reservation_id == Reservation.id)
             .where(
-                Reservation.reservation_time == reservation_time_utc,
+                time_filter,
                 Reservation.status.in_(["confirmed", "pending"])
             )
             .group_by(Reservation.table_type_id)
@@ -65,15 +71,17 @@ class GetAvailability:
             TableType.capacity >= party
         )
 
-        if table_type:
+        if table_type and table_type.lower() not in ("", "any"):
             stmt = stmt.where(TableType.type == table_type)
 
         result = await self.db.execute(stmt)
         rows = result.all()
 
+        reference_time = local_dt.replace(tzinfo=None) if time else datetime.combine(date, datetime.min.time())
+
         return [
             AvailabilitySlot(
-                time=local_dt.replace(tzinfo=None),
+                time=reference_time,
                 table_type=tt.type,
                 table_type_name=tt.name,
                 seats=tt.capacity,
@@ -81,7 +89,7 @@ class GetAvailability:
                 price_per_seat=tt.price
             )
             for tt, reserved in rows
-            if tt.capacity - reserved >= party  
+            if tt.capacity - reserved >= party
         ]
 
 def get_availability_service(db: AsyncSession = Depends(get_db)):

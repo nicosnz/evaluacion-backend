@@ -1,7 +1,7 @@
-from sqlmodel import SQLModel,Field,Relationship
+from sqlmodel import Field,Relationship
 import uuid
 from typing import Optional
-from .timeStampModel import TimeStampModel
+from models.timeStampModel import TimeStampModel
 
 
 class TableType(TimeStampModel,table=True):

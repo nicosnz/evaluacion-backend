@@ -1,6 +1,6 @@
 from fastapi import APIRouter,Depends
 from pydantic import BaseModel
-from ...services.getAllTableTypes import GetAllTableTypes,get_all_table_types
+from services.getAllTableTypes import GetAllTableTypes,get_all_table_types
 router = APIRouter()
 import uuid
 

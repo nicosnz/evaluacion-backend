@@ -1,8 +1,7 @@
-from sqlmodel import SQLModel,Field,Relationship
+from sqlmodel import Field,Relationship
 import uuid
 from typing import Optional
-from .timeStampModel import TimeStampModel
-from datetime import date
+from models.timeStampModel import TimeStampModel
 
 class MenuItem(TimeStampModel,table=True):
     __tablename__="menu_item"

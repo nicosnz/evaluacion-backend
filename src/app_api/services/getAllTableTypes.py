@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import Depends
-from ..models.table_type import TableType
-from ..db.postgres import get_db
+from models.table_type import TableType
+from db.postgres import get_db
 
 class GetAllTableTypes:
     def __init__(self, db: AsyncSession):

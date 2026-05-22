@@ -105,7 +105,8 @@ CREATE TABLE content.reservation_guest (
         REFERENCES content.reservation(id)
         ON DELETE CASCADE
 );
-
+CREATE INDEX idx_reservation_time ON content.reservation(reservation_time);
+CREATE INDEX idx_reservation_status ON content.reservation(status);
 ----------------------------------------------------
 -- RESTAURANT
 ----------------------------------------------------

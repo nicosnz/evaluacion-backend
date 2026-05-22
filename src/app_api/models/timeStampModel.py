@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel,Field
+from sqlmodel import SQLModel
 from datetime import datetime
 
 class TimeStampModel(SQLModel):

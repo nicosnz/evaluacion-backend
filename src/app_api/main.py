@@ -1,8 +1,8 @@
 from fastapi import FastAPI
-from .models import *
-from .api.v1 import table_types
-from .api.v1 import reservations
-from .api.v1 import menu
+from models import *
+from api.v1 import table_types
+from api.v1 import reservations
+from api.v1 import menu
 app = FastAPI()
 
 app.include_router(table_types.router,prefix="/api/v1/tables",tags=["table type"])

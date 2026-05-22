@@ -1,6 +1,6 @@
-from sqlmodel import SQLModel,Field,Relationship
+from sqlmodel import Field,Relationship
 import uuid
-from .timeStampModel import TimeStampModel
+from models.timeStampModel import TimeStampModel
 
 
 class Restaurant(TimeStampModel,table=True):

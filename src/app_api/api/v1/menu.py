@@ -1,7 +1,6 @@
-# api/v1/menu.py
 from fastapi import APIRouter, Depends, Query
 from datetime import date
-from ...services.getMenu import GetMenu, get_menu_service,MenuItemResponse
+from services.getMenu import GetMenu, get_menu_service,MenuItemResponse
 
 router = APIRouter()
 

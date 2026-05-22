@@ -4,9 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import Depends
 from datetime import date
-from ..models.menu import Menu
-from ..models.menu_item import MenuItem
-from ..db.postgres import get_db
+from models.menu import Menu
+from models.menu_item import MenuItem
+from db.postgres import get_db
 
 class MenuItemResponse(BaseModel):
     id: uuid.UUID
