@@ -45,7 +45,20 @@ services:
       - private_net
     expose:
       - "8000"
-
+  admin:
+    container_name: admin
+    build: ./src/admin
+    depends_on:
+      database_restaurante:
+        condition: service_healthy 
+    networks:
+      - public_net
+      - private_net
+    volumes:
+      - static_volume:/app/staticfiles  
+      - media_volume:/app/media
+    expose:
+      - "8000"
   proxy:
     container_name: proxy-restaurante
     image: nginx:latest
@@ -62,6 +75,8 @@ services:
       - public_net
 volumes:
   ev2:
+  static_volume:
+  media_volume: 
 networks:
   private_net:
     internal: true
