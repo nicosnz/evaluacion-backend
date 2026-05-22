@@ -54,6 +54,8 @@ services:
     networks:
       - public_net
       - private_net
+    env_file:
+      - .env
     volumes:
       - static_volume:/app/staticfiles  
       - media_volume:/app/media
@@ -65,10 +67,13 @@ services:
     depends_on:
       api:
         condition: service_healthy
-      
+      admin:
+        condition: service_started
     volumes:
       - ./nginx:/etc/nginx/conf.d
       - ./src/ui:/usr/share/nginx/html
+      - static_volume:/app/staticfiles   
+      - media_volume:/app/media
     ports:
       - "80:80"
     networks:

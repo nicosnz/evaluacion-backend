@@ -11,9 +11,9 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG","False").lower()=="true"
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["localhost"]
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8080",
+    "http://localhost",
 ]
 
 
