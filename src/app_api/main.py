@@ -8,6 +8,7 @@ from core import config
 from redis.asyncio import Redis
 import db.cache as cache
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     cache.redis_client = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT)
